@@ -11,7 +11,7 @@ __status__ = "Production"
 #The theory behind the algorithm is based on the description given by Tom M. Mitchell in Machine Learning
 
 import pandas as pd 				#Pandas must be installed.Pandas used for reading data from .csv file. 
-data = pd.read_csv('enjoysport.csv')
+data = pd.read_csv('enjoysport.csv')#ensure csv file exists in the same folder as the python code.
 columnLength= data.shape[1]			#obtain number of columns
 rowLength=data.shape[0]				#obtain number of rows
 print (data)						#print the table
