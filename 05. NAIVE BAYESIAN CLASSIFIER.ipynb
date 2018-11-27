@@ -1,0 +1,168 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "def probAttr(data,attr,val):\n",
+    "    Total=data.shape[0]    #Get column length\n",
+    "    cnt = len(data[data[attr] == val]) #Count of Attribute [attr] equal to val\n",
+    "    return cnt,cnt/Total"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "def train(data,Attr,conceptVals,concept): \n",
+    "    conceptProbs = {} #P(A)\n",
+    "    countConcept={}\n",
+    "    for cVal in conceptVals: #Get probablity and count of Yes and No\n",
+    "        countConcept[cVal],conceptProbs[cVal] = probAttr(data,concept,cVal)\n",
+    "    \n",
+    "    AttrConcept = {} #P(X/A)\n",
+    "    probability_list = {} #P(X)\n",
+    "    for att in Attr: #Create a tree for attribute\n",
+    "        probability_list[att] = {}\n",
+    "        AttrConcept[att] = {}\n",
+    "        for val in Attr[att]: #Create Tree for Attribute value\n",
+    "            AttrConcept[att][val] = {}\n",
+    "            a,probability_list[att][val] = probAttr(data,att,val) #Get Probablity for att equal to val\n",
+    "            for cVal in conceptVals: #Create Tree to hold yes and no values\n",
+    "                dataTemp = data[data[att]==val] #Calculate att equal to val and concept equal to cVal\n",
+    "                AttrConcept[att][val][cVal] = len(dataTemp[dataTemp[concept] == cVal])/countConcept[cVal]\n",
+    "            \n",
+    "    print(\"P(A) : \",conceptProbs,\"\\n\")\n",
+    "    print(\"P(X/A) : \",AttrConcept,\"\\n\")\n",
+    "    print(\"P(X) : \",probability_list,\"\\n\")\n",
+    "    return conceptProbs,AttrConcept,probability_list"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "def test(examples,Attr,concept_list,conceptProbs,AttrConcept,probability_list):\n",
+    "    misclassification_count=0\n",
+    "    Total = len(examples)    #Get Number of testing set\n",
+    "    for ex in examples:\n",
+    "        px={}  #Dict to hold final value\n",
+    "        for a in Attr:    #Iterrate thorugh the Tree with Attributes (Refer problem to find the tree)\n",
+    "            for x in ex:  #Iterrate thorugh the Tree for given example\n",
+    "                for c in concept_list:   #Iterrate thorugh the Tree using concepts\n",
+    "                    if x in AttrConcept[a]:  #Check if the value of x refering in same sub-tree of P(X/A)\n",
+    "                        if c not in px: #If c not in px multiply P(A) with 1st Itteration (for 1st value of x)\n",
+    "                            px[c] = conceptProbs[c]*AttrConcept[a][x][c]/probability_list[a][x]\n",
+    "                        else:  #multiply px in next Itterations (for next values of x)\n",
+    "                            px[c] = px[c]*AttrConcept[a][x][c]/probability_list[a][x]\n",
+    "        print(px)\n",
+    "        classification = max(px,key=px.get)  #Key of Maximum of px is required Classification\n",
+    "        print(\"Classification :\",classification,\"Expected :\",ex[-1])\n",
+    "        if(classification!=ex[-1]):\n",
+    "            misclassification_count+=1\n",
+    "    misclassification_rate=misclassification_count*100/Total\n",
+    "    accuracy=100-misclassification_rate\n",
+    "    print(\"Misclassification Count={}\".format(misclassification_count))\n",
+    "    print(\"Misclassification Rate={}%\".format(misclassification_rate))\n",
+    "    print(\"Accuracy={}%\".format(accuracy))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {
+    "collapsed": true,
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "def main():\n",
+    "    import pandas as pd\n",
+    "    from pandas import DataFrame \n",
+    "    data = DataFrame.from_csv('PlayTennis_train1.csv')\n",
+    "    #print(data)\n",
+    "    concept=str(list(data)[-1])\n",
+    "    concept_list = set(data[concept])\n",
+    "    Attr={}\n",
+    "    for a in list(data)[:-1]:    #Get attribute values\n",
+    "        Attr[a] = set(data[a])\n",
+    "    conceptProbs,AttrConcept,probability_list = train(data,Attr,concept_list,concept)\n",
+    "\n",
+    "    examples = DataFrame.from_csv('PlayTennis_test1.csv')\n",
+    "    #print(examples)\n",
+    "    test(examples.values,Attr,concept_list,conceptProbs,AttrConcept,probability_list)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "P(A) :  {'No': 0.35714285714285715, 'Yes': 0.6428571428571429} \n",
+      "\n",
+      "P(X/A) :  {'Outlook': {'Rain': {'No': 0.4, 'Yes': 0.3333333333333333}, 'Overcast': {'No': 0.0, 'Yes': 0.4444444444444444}, 'Sunny': {'No': 0.6, 'Yes': 0.2222222222222222}}, 'Temperature': {'Cool': {'No': 0.2, 'Yes': 0.3333333333333333}, 'Hot': {'No': 0.4, 'Yes': 0.2222222222222222}, 'Mild': {'No': 0.4, 'Yes': 0.4444444444444444}}, 'Humidity': {'Normal': {'No': 0.2, 'Yes': 0.6666666666666666}, 'High': {'No': 0.8, 'Yes': 0.3333333333333333}}, 'Wind': {'Strong': {'No': 0.6, 'Yes': 0.3333333333333333}, 'Weak': {'No': 0.4, 'Yes': 0.6666666666666666}}} \n",
+      "\n",
+      "P(X) :  {'Outlook': {'Rain': 0.35714285714285715, 'Overcast': 0.2857142857142857, 'Sunny': 0.35714285714285715}, 'Temperature': {'Cool': 0.2857142857142857, 'Hot': 0.2857142857142857, 'Mild': 0.42857142857142855}, 'Humidity': {'Normal': 0.5, 'High': 0.5}, 'Wind': {'Strong': 0.42857142857142855, 'Weak': 0.5714285714285714}} \n",
+      "\n",
+      "{'No': 0.9408000000000001, 'Yes': 0.24197530864197522}\n",
+      "Classification : No Expected : No\n",
+      "Misclassification Count=0\n",
+      "Misclassification Rate=0.0%\n",
+      "Accuracy=100.0%\n"
+     ]
+    }
+   ],
+   "source": [
+    "main()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
